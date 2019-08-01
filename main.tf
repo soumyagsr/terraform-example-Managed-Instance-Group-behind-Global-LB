@@ -106,7 +106,8 @@ resource "google_compute_region_autoscaler" "autoscaler1" {
   }
 }
 
-# Create a backend service pointing to the managed instance group defined above.
+
+# Create the 1st backend service pointing to the 1st MIG defined above     
 resource "google_compute_backend_service" "default" {
   provider      = "google"
   name          = "tf-backend-svc-default"
