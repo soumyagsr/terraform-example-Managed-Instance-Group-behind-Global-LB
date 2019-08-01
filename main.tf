@@ -6,7 +6,6 @@ provider "google-beta" {
   project = "${var.project_name}"
 }
 
-
 # Create a new VPC network
 resource "google_compute_network" "tf-test-nw" {
   name                    = "tf-vpc"
@@ -35,19 +34,16 @@ resource "google_compute_instance_template" "default-mig-template" {
   depends_on              = [google_compute_network.tf-test-nw, google_compute_subnetwork.tf-subnet]
   region                  = "${var.region1}"
   metadata_startup_script = "sudo apt-get update && sudo apt-get install apache2 -y && echo '<!doctype html><html><body><h1>Hello from Terraform on Google Cloud!</h1></body></html>' | sudo tee /var/www/html/index.html"
-
   scheduling {
     automatic_restart   = true
     on_host_maintenance = "MIGRATE"
   }
-
   // Create a new boot disk from an image
   disk {
     source_image = "debian-cloud/debian-9"
     auto_delete  = true
     boot         = true
   }
-
   network_interface {
     network    = "tf-vpc"
     subnetwork = "tf-subnet"
@@ -55,13 +51,10 @@ resource "google_compute_instance_template" "default-mig-template" {
       // Include this section to give the VM an external ip address
     }
   }
-
   service_account {
     scopes     = ["userinfo-email", "compute-ro", "storage-ro"]
   }
-
 }
-
 
 # Create an HTTP health check
 resource "google_compute_health_check" "health-check" {
@@ -97,7 +90,6 @@ resource "google_compute_region_instance_group_manager" "mig-mgr1" {
   }
 }
 
-
 # Create an autoscaler associated with the 1st managed instance group
 resource "google_compute_region_autoscaler" "autoscaler1" {
   provider = "google-beta"
@@ -114,12 +106,7 @@ resource "google_compute_region_autoscaler" "autoscaler1" {
   }
 }
 
-
 # Create a backend service pointing to the managed instance group defined above.
-# The backend service definition is where the IAP provisioning happens.
-# The OAuth2 client id and secret cannot be generated in Terrafom, you have to use the console.
-# In the console, go to API& Services -> Credentials to create the client id and client secret and copy them in the code below.
-
 resource "google_compute_backend_service" "default" {
   provider      = "google"
   name          = "tf-backend-svc-default"
@@ -129,14 +116,12 @@ resource "google_compute_backend_service" "default" {
   backend {
     group = "${google_compute_region_instance_group_manager.mig-mgr1.instance_group}"
   }
-
   # Open bug on applying multiple backends: https://github.com/terraform-providers/terraform-provider-google/issues/3937
   # As of now, you have to create two different backends
   # backend {
   #  group = "${google_compute_region_instance_group_manager.mig-mgr2.instance_group}"
   # }
 }
-
 
 # Define the url map - use the path matcher to point to different backend services
 # Example of content based load balancing to different backends is contained in the repo listed in References
@@ -154,7 +139,6 @@ resource "google_compute_url_map" "default" {
   }
 }
 
-
 # Define the HTTP(S) proxy where the forwarding rule forwards requests
 resource "google_compute_target_http_proxy" "http-lb-proxy" {
   provider = "google"
@@ -162,13 +146,11 @@ resource "google_compute_target_http_proxy" "http-lb-proxy" {
   url_map = "${google_compute_url_map.default.self_link}"
 }
 
-
 # Create a static global address (single anycast IP)
 resource "google_compute_global_address" "external-address" {
   provider = "google"
   name = "tf-external-address"
 }
-
 
 # Define the load balancer forwarding rule that sends traffic to the proxy defined above
 resource "google_compute_global_forwarding_rule" "default" {
@@ -194,7 +176,6 @@ resource "google_compute_firewall" "default" {
   target_tags   = ["http-tag"]
 }
 
-
 /*
 # This block is optional - add it if you need SSH access to the VMs
 # Define firewall rule to allow SSH traffic
@@ -210,5 +191,4 @@ resource "google_compute_firewall" "ssh" {
   }
   target_tags   = ["http-tag"]
 }
-
 */
