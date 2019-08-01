@@ -1,5 +1,3 @@
-
-# Resource: https://cloud.google.com/community/tutorials/modular-load-balancing-with-terraform
 variable "region1" {
   default = "us-west1"
 }
